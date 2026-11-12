@@ -50,6 +50,8 @@ try:
       const { validateConfig, searchURL } = ChromeUtils.importESModule('resource://browser-custom/modules/Core.sys.mjs');
       (async () => {
         const original = JSON.stringify(Browser.config);
+        const { SearchService } = ChromeUtils.importESModule('moz-src:///toolkit/components/search/SearchService.sys.mjs');
+        const personal = await SearchService.addUserEngine({name:'Personal [Browser]', url:'https://example.org/?q={searchTerms}'});
         let rejected = 0;
         for (const patch of [{appearance:{blur:-1}}, {search:{default:'missing'}},
           {preferences:{'security.sandbox.content.level':0}}, {unknown:true},
@@ -67,6 +69,7 @@ try:
         const tab = gBrowser.addTab('about:blank', {triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});
         gBrowser.pinTab(tab); const pinned = tab.pinned; gBrowser.removeTab(tab);
         done({rejected, unchanged, applied, removed, pinned,
+          personalSearchPreserved:!!SearchService.getEngineById(personal.id),
           vertical:Services.prefs.getBoolPref('sidebar.verticalTabs'),
           signatures:Services.prefs.getBoolPref('xpinstall.signatures.required'),
           sandbox:Services.prefs.getIntPref('security.sandbox.content.level') > 0,

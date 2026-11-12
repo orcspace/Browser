@@ -4,7 +4,7 @@ The shipping application uses pinned Mozilla Firefox ESR binaries, native Firefo
 chrome, and our privileged AutoConfig modules. It contains no Electron, Chromium
 or Node runtime. The previous Electron prototype is archived on prototype/electron.
 Mozilla's engine is not compiled by this repository; tools/build.py produces a
-reproducible branded distribution from SHA-512-pinned official archives.
+branded development distribution from SHA-512-pinned official archives.
 
 Use Python 3.12+ for packaging and tests. Build with `python tools/build.py`.
 Run `python -m unittest discover -s tests -p 'test_*.py'` and the native Marionette

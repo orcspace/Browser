@@ -51,7 +51,14 @@ Found and corrected:
 - A test quit before its newly pinned URL loaded; wait for navigation to finish
   before checking persistence across a normal quit/relaunch.
 
-## Review 5: regression review of the implemented migration
+## Review 5: search engine ownership
+
+Found and corrected: name suffixes alone were used to identify managed search
+engines, which could delete a user-created engine with a matching suffix. Persist
+native engine IDs, remove only owned IDs, and choose a non-conflicting name when
+creating an engine. A native regression test preserves `Personal [Browser]`.
+
+## Review 6: regression review of the implemented migration
 
 No new findings in the reviewed controller/config/search/tab lifecycle and
 packaging paths after these fixes. This scoped result does not certify all

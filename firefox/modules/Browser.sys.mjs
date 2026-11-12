@@ -62,17 +62,31 @@ export const Browser = {
   },
   async applySearch() {
     await SearchService.init();
-    const managed = new Set(this.config.search.engines.map(item => `${item.name} [Browser]`));
-    for (const engine of await SearchService.getEngines()) {
-      if (engine.name.endsWith(' [Browser]') && !managed.has(engine.name)) await SearchService.removeEngine(engine);
+    const preference = 'browser.custom.searchEngines';
+    let stored;
+    try { stored = JSON.parse(Services.prefs.getStringPref(preference, '{}')); }
+    catch { stored = {}; }
+    const owned = Object.assign(Object.create(null), stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {});
+    const wanted = new Set(this.config.search.engines.map(item => item.id));
+    for (const [id, engineId] of Object.entries(owned)) {
+      if (wanted.has(id)) continue;
+      const engine = typeof engineId === 'string' && await SearchService.getEngineById(engineId);
+      if (engine) await SearchService.removeEngine(engine);
+      delete owned[id];
     }
     for (const item of this.config.search.engines) {
-      const name = `${item.name} [Browser]`;
-      let engine = await SearchService.getEngineByName(name);
-      if (engine && engine.getSubmission('browser-config-probe').uri.spec !== item.url.replace('{query}', 'browser-config-probe')) {
+      let engine = typeof owned[item.id] === 'string' && await SearchService.getEngineById(owned[item.id]);
+      if (engine && (!engine.name.startsWith(`${item.name} [Browser]`) || engine.getSubmission('browser-config-probe')?.uri.spec !== item.url.replace('{query}', 'browser-config-probe'))) {
         await SearchService.removeEngine(engine); engine = null;
       }
-      if (!engine) engine = await SearchService.addUserEngine({ name, url: item.url.replace('{query}', '{searchTerms}'), alias: item.keyword });
+      if (!engine) {
+        const baseName = `${item.name} [Browser]`;
+        let name = baseName, suffix = 2;
+        while (await SearchService.getEngineByName(name)) name = `${baseName} ${suffix++}`;
+        engine = await SearchService.addUserEngine({ name, url: item.url.replace('{query}', '{searchTerms}'), alias: item.keyword });
+      }
+      owned[item.id] = engine.id;
+      Services.prefs.setStringPref(preference, JSON.stringify(owned));
       engine.alias = item.keyword.toLowerCase();
       if (item.id === this.config.search.default) await SearchService.setDefault(engine, SearchService.CHANGE_REASON.USER);
     }
@@ -82,11 +96,11 @@ export const Browser = {
     win.__browserAttached = true;
     if (!this.widgetCreated) {
       const { CustomizableUI } = ChromeUtils.importESModule('moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs');
-    CustomizableUI.createWidget({
-      id: 'browser-config-button', defaultArea: CustomizableUI.AREA_NAVBAR,
-      label: 'Browser settings', tooltiptext: 'Browser settings',
-      onCommand: event => openSettings(event.target.ownerGlobal, this),
-    });
+      CustomizableUI.createWidget({
+        id: 'browser-config-button', defaultArea: CustomizableUI.AREA_NAVBAR,
+        label: 'Browser settings', tooltiptext: 'Browser settings',
+        onCommand: event => openSettings(event.target.ownerGlobal, this),
+      });
       this.widgetCreated = true;
     }
     applyTheme(win, this.config.appearance);
