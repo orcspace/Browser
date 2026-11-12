@@ -1,5 +1,5 @@
 import hashlib
-import importlib.util
+import zipfile
 import sys
 import tempfile
 import unittest
@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from build import verify
 from overlay import install
+from compatibility import FIXES, patch_runtime
 
 class PackagingTests(unittest.TestCase):
     def test_integrity_rejects_modified_archive(self):
@@ -19,6 +20,19 @@ class PackagingTests(unittest.TestCase):
             archive.write_bytes(b'modified')
             with self.assertRaises(ValueError):
                 verify(archive, digest)
+
+    def test_compatibility_patches_reject_changed_upstream(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / 'omni.ja'
+            with zipfile.ZipFile(archive, 'w') as source:
+                for name, (old, _) in FIXES.items():
+                    source.writestr('modules/' + name, old)
+            patch_runtime(directory)
+            with zipfile.ZipFile(archive) as patched:
+                for name, (_, new) in FIXES.items():
+                    self.assertEqual(patched.read('modules/' + name).decode(), new)
+            with self.assertRaises(ValueError):
+                patch_runtime(directory)
 
     def test_overlay_separates_application_profile(self):
         with tempfile.TemporaryDirectory() as directory:

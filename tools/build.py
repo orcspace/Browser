@@ -13,6 +13,7 @@ import urllib.request
 from pathlib import Path
 from overlay import ROOT, install
 from branding import brand
+from compatibility import patch_runtime
 from macos_sign import sign_bundle
 
 
@@ -55,6 +56,7 @@ def build(archive=None):
             shutil.move(temp / 'firefox', runtime)
             install(runtime)
             brand(runtime)
+            patch_runtime(runtime)
             executable = output / 'Browser'
             run('cc', '-O2', '-Wall', '-Wextra', ROOT / 'native/launcher.c', '-o', executable)
         elif system == 'Windows':
@@ -63,6 +65,7 @@ def build(archive=None):
             shutil.move(temp / 'core', runtime)
             install(runtime)
             brand(runtime)
+            patch_runtime(runtime)
             executable = output / 'Browser.exe'
             resource = temp / 'browser.rc'
             resource.write_text('1 ICON "' + (ROOT / 'assets/icon.ico').as_posix() + '"\n')
@@ -79,6 +82,7 @@ def build(archive=None):
             runtime = bundle / 'Contents/Resources'
             install(runtime)
             brand(runtime)
+            patch_runtime(runtime)
             executable = bundle / 'Contents/MacOS/Browser'
             run('clang', '-O2', '-Wall', '-arch', 'arm64', ROOT / 'native/launcher.c', '-o', executable)
             iconset = temp / 'Browser.iconset'

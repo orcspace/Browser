@@ -6,7 +6,7 @@ implementation. The old prototype is preserved on `prototype/electron`.
 
 This is a development distribution of Firefox ESR, not a new rendering engine:
 Firefox itself uses Gecko. This repository packages verified Mozilla binaries
-and installs Browser's chrome modules; it does not compile Mozilla's source tree.
+and installs Browser's chrome modules, branding and two guarded upstream JS fixes; it does not compile Mozilla's source tree.
 
 ## Architecture
 

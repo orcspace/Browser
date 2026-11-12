@@ -1,4 +1,3 @@
-import { CustomizableUI } from 'moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs';
 import { SearchService } from 'moz-src:///toolkit/components/search/SearchService.sys.mjs';
 import { validateConfig } from './Core.sys.mjs';
 import { applyTheme, openSettings } from './Interface.sys.mjs';
@@ -12,11 +11,6 @@ export const Browser = {
       if (!(await IOUtils.exists(this.path))) await this.write(this.config);
     } catch (error) { this.error = String(error); this.config = validateConfig(this.defaults, {}); Cu.reportError(error); }
     this.applyPreferences();
-    CustomizableUI.createWidget({
-      id: 'browser-config-button', defaultArea: CustomizableUI.AREA_NAVBAR,
-      label: 'Browser settings', tooltiptext: 'Browser settings',
-      onCommand: event => openSettings(event.target.ownerGlobal, this),
-    });
     Services.obs.addObserver(this, 'browser-delayed-startup-finished');
     for (const win of Services.wm.getEnumerator('navigator:browser')) if (win.gBrowserInit?.delayedStartupFinished) this.attach(win);
     this.ready = this.applySearch().catch(error => { this.error = String(error); Cu.reportError(error); });
@@ -85,6 +79,15 @@ export const Browser = {
   attach(win) {
     if (win.__browserAttached) return;
     win.__browserAttached = true;
+    if (!this.widgetCreated) {
+      const { CustomizableUI } = ChromeUtils.importESModule('moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs');
+    CustomizableUI.createWidget({
+      id: 'browser-config-button', defaultArea: CustomizableUI.AREA_NAVBAR,
+      label: 'Browser settings', tooltiptext: 'Browser settings',
+      onCommand: event => openSettings(event.target.ownerGlobal, this),
+    });
+      this.widgetCreated = true;
+    }
     applyTheme(win, this.config.appearance);
     const activity = new WeakMap();
     let previous = win.gBrowser.selectedTab;

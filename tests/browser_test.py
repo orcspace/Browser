@@ -78,6 +78,10 @@ try:
     assert all(value is True for value in checks.values()), checks
     class Page(BaseHTTPRequestHandler):
         def do_GET(self):
+            if self.path == '/favicon.ico':
+                self.send_response(404)
+                self.end_headers()
+                return
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
@@ -112,6 +116,15 @@ try:
         server.shutdown()
         server.server_close()
         thread.join()
+    m.execute_script("""
+      const tab = gBrowser.addTab('about:blank#browser-pin', {triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});
+      gBrowser.pinTab(tab);
+    """)
+    m.quit(in_app=True)
+    m.start_session()
+    m.set_context('chrome')
+    Wait(m, timeout=15).until(lambda driver: driver.execute_script("return [...gBrowser.tabs].some(t => t.pinned && t.linkedBrowser.currentURI.spec === 'about:blank#browser-pin')"))
+    print('Pinned tab survived a normal quit and fresh launch.')
     if args.screenshot:
         Path(args.screenshot).write_bytes(m.screenshot(format='binary'))
 finally:
