@@ -33,6 +33,8 @@ def brand(runtime):
                     import re
                     text = re.sub(r'(?m)^-brand-' + key + r' = .*$', '-brand-' + key + ' = Browser', text)
                 data = text.encode()
+            elif '/branding/' in item.filename and item.filename.endswith('.png') and '/icon' in item.filename:
+                data = (Path(__file__).resolve().parents[1] / 'assets/icon.png').read_bytes()
             elif item.filename.endswith('/branding/brand.properties'):
                 import re
                 data = re.sub(r'(?m)^(brandShorterName|brandShortName|brandFullName)=.*$', r'\1=Browser', data.decode()).encode()

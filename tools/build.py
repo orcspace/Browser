@@ -63,7 +63,10 @@ def build(archive=None):
             install(runtime)
             brand(runtime)
             executable = output / 'Browser.exe'
-            run('cl', '/O2', '/W4', '/DUNICODE', '/D_UNICODE', ROOT / 'native/launcher.c', '/Fe:' + str(executable), '/Fo:' + str(temp / 'launcher.obj'), '/link', '/SUBSYSTEM:WINDOWS', '/ENTRY:wmainCRTStartup')
+            resource = temp / 'browser.rc'
+            resource.write_text('1 ICON "' + (ROOT / 'assets/icon.ico').as_posix() + '"\n')
+            run('rc', '/fo', temp / 'browser.res', resource)
+            run('cl', '/O2', '/W4', '/DUNICODE', '/D_UNICODE', ROOT / 'native/launcher.c', temp / 'browser.res', '/Fe:' + str(executable), '/Fo:' + str(temp / 'launcher.obj'), '/link', '/SUBSYSTEM:WINDOWS', '/ENTRY:wmainCRTStartup')
         elif system == 'Darwin':
             mount = temp / 'mounted'
             run('hdiutil', 'attach', archive, '-readonly', '-nobrowse', '-mountpoint', mount)
@@ -77,9 +80,16 @@ def build(archive=None):
             brand(runtime)
             executable = bundle / 'Contents/MacOS/Browser'
             run('clang', '-O2', '-Wall', '-arch', 'arm64', ROOT / 'native/launcher.c', '-o', executable)
+            iconset = temp / 'Browser.iconset'
+            iconset.mkdir()
+            for size in (16, 32, 128, 256, 512):
+                for scale in (1, 2):
+                    name = f'icon_{size}x{size}' + ('@2x' if scale == 2 else '') + '.png'
+                    run('sips', '-z', size * scale, size * scale, ROOT / 'assets/icon.png', '--out', iconset / name)
+            run('iconutil', '-c', 'icns', iconset, '-o', runtime / 'Browser.icns')
             info = bundle / 'Contents/Info.plist'
             data = plistlib.loads(info.read_bytes())
-            data.update(CFBundleName='Browser', CFBundleDisplayName='Browser', CFBundleIdentifier='space.orc.browser', CFBundleExecutable='Browser')
+            data.update(CFBundleName='Browser', CFBundleDisplayName='Browser', CFBundleIdentifier='space.orc.browser', CFBundleExecutable='Browser', CFBundleIconFile='Browser.icns')
             info.write_bytes(plistlib.dumps(data))
             run('codesign', '--force', '--deep', '--sign', '-', '--preserve-metadata=entitlements,requirements,flags,runtime', bundle)
         else:

@@ -4,7 +4,7 @@ export function applyTheme(win, a) {
   let style = doc.getElementById('browser-custom-theme');
   if (!style) { style = doc.createElementNS(HTML, 'style'); style.id = 'browser-custom-theme'; doc.documentElement.append(style); }
   style.textContent = `
-    :root { --toolbar-bgcolor: ${a.background}; --toolbar-color: ${a.text};
+    :root { color-scheme: dark !important; --background-color-box: ${a.background}; --text-color: ${a.text}; --toolbar-bgcolor: ${a.background}; --toolbar-color: ${a.text};
       --lwt-accent-color: ${a.background}; --lwt-text-color: ${a.text};
       --tab-selected-bgcolor: ${a.surface}; --tab-min-height: ${a.tabHeight}px;
       --tab-border-radius: ${a.cornerRadius}px; --sidebar-background-color: ${a.background};
@@ -12,11 +12,16 @@ export function applyTheme(win, a) {
       --toolbar-field-background-color: color-mix(in srgb, ${a.surface} ${a.surfaceOpacity * 100}%, transparent); --toolbar-field-color: ${a.text};
       --focus-outline-color: ${a.accent}; --toolbar-field-placeholder-color: ${a.muted}; font-size: ${a.fontSize}px !important; }
     #navigator-toolbox { opacity: ${a.windowOpacity}; }
-    #navigator-toolbox, #sidebar-main { color: ${a.text}; background-color: ${a.background}; }
-    #sidebar-main { min-width: ${a.sidebarWidth}px; }
+    #navigator-toolbox, sidebar-main { color: ${a.text}; background-color: ${a.background}; }
+    sidebar-main { min-width: ${a.sidebarWidth}px; }
+    #sidebar-container, #vertical-tabs { background: ${a.background} !important; color: ${a.text} !important; }
+    #tabbrowser-tabs, .tabbrowser-tab { color: ${a.text} !important; --tab-selected-textcolor: ${a.text}; }
+    .tab-label { color: ${a.text} !important; }
+    .tab-background[selected] { background: ${a.surface} !important; }
+    #browser-config-button .toolbarbutton-icon { width: 16px; height: 16px; border: 2px solid ${a.text}; border-radius: 50%; padding: 0 !important; margin: 8px; }
     #firefox-view-button, #fxa-toolbar-menu-button { display: none !important; }
     ${a.reduceMotion ? '* { animation-duration: 0s !important; transition-duration: 0s !important; }' : ''}
-    ${a.material === 'glass' ? `#navigator-toolbox, #sidebar-main { background: color-mix(in srgb, ${a.background} ${a.backgroundOpacity * 100}%, transparent) !important; backdrop-filter: blur(${a.blur}px); }` : ''}
+    ${a.material === 'glass' ? `#navigator-toolbox, sidebar-main { background: color-mix(in srgb, ${a.background} ${a.backgroundOpacity * 100}%, transparent) !important; backdrop-filter: blur(${a.blur}px); }` : ''}
   `;
   doc.documentElement.style.setProperty('font-family', a.fontFamily);
   for (const key of win.__browserCSSVariables || []) doc.documentElement.style.removeProperty(key);

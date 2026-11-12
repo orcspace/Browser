@@ -3,11 +3,13 @@ import argparse
 import json
 import os
 import gc
+from pathlib import Path
 from marionette_driver.marionette import Marionette
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--binary', required=True)
 parser.add_argument('--app')
+parser.add_argument('--screenshot')
 args = parser.parse_args()
 flags = ['--remote-allow-system-access']
 if args.app:
@@ -67,6 +69,8 @@ try:
     print(json.dumps(checks, indent=2))
     assert checks.pop('rejected') == 6
     assert all(value is True for value in checks.values()), checks
+    if args.screenshot:
+        Path(args.screenshot).write_bytes(m.screenshot(format='binary'))
 finally:
     m.cleanup()
     del m
