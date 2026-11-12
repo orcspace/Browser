@@ -1,0 +1,19 @@
+{
+  "policies": {
+    "DisableAppUpdate": true,
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisableFirefoxAccounts": true,
+    "DisableFormHistory": true,
+    "PasswordManagerEnabled": false,
+    "OfferToSaveLogins": false,
+    "DontCheckDefaultBrowser": true,
+    "NoDefaultBookmarks": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "GenerativeAI": { "Enabled": false, "Locked": true },
+    "FirefoxSuggest": { "WebSuggestions": false, "SponsoredSuggestions": false, "ImproveSuggest": false },
+    "FirefoxHome": { "Search": true, "TopSites": false, "Highlights": false, "Stories": false, "SponsoredStories": false, "SponsoredTopSites": false },
+    "UserMessaging": { "ExtensionRecommendations": false, "FeatureRecommendations": false, "UrlbarInterventions": false, "SkipOnboarding": true, "MoreFromMozilla": false }
+  }
+}

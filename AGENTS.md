@@ -1,17 +1,23 @@
-# Browser
+# Browser (Firefox / Gecko)
 
-The desktop product is Electron/Chromium. Obscura's original source is retained
-in Git history and on `prototype/obscura`; it is not shipped in the app.
-See NOTICE for provenance. No Rust engine code remains in the active tree.
+The shipping application uses pinned Mozilla Firefox ESR binaries, native Firefox
+chrome, and our privileged AutoConfig modules. It contains no Electron, Chromium
+or Node runtime. The previous Electron prototype is archived on prototype/electron.
+Mozilla's engine is not compiled by this repository; tools/build.py produces a
+reproducible branded distribution from SHA-512-pinned official archives.
 
-Use Node 24 and `npm ci`. Run `npm run check`, `npm test`, and
-`npm run test:desktop` (on Linux, `xvfb-run -a npm run test:desktop`).
-Use `npm run pack` to validate packaging. Native distribution jobs run on
-Windows and macOS; never describe those artifacts as tested until CI passes.
+Use Python 3.12+ for packaging and tests. Build with `python tools/build.py`.
+Run `python -m unittest discover -s tests -p 'test_*.py'` and the native Marionette
+integration suite with `python tests/browser_test.py --binary <built executable>`.
+Marionette and system access are enabled only by the test launcher, never by the
+shipping app. Never disable Gecko's content sandbox, Fission, or TLS validation.
 
-Keep remote web content sandboxed with Node disabled and context isolation on.
-Only the local chrome renderer gets the small, sender-validated preload API.
-Never disable Chromium's sandbox, TLS checks, web security, or site isolation.
-Use WebContentsView rather than webview tags. Never persist passwords.
-All user configuration passes through src/core/config.cjs validation.
-Keep the product small: no accounts, sync, AI assistant, or automation server.
+AutoConfig's JavaScript sandbox setting enables our installed chrome controller;
+it is separate from Gecko's content sandbox. Never evaluate config text as code.
+Config is JSON, custom styling is CSS, and remote pages get no privileged bridge.
+Keep native navigation/security UI and native Firefox extension verification.
+Do not claim that disabled Firefox features were removed from the compiled engine.
+
+Review and fix bugs in repeated passes until a pass has no new findings in its
+stated scope. Record limits honestly, run regression tests before packaging, and
+verify target-platform CI before claiming artifacts are ready.
