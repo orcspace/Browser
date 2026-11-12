@@ -33,6 +33,7 @@ jobs:
         run: |
           if [ -f gecko.log ]; then cat gecko.log; fi
           if [ "${{ runner.os }}" = "macOS" ]; then
+            python tools/diagnose_macos.py
             codesign --verify --deep --strict --verbose=2 dist/Darwin/Browser.app
           fi
       - run: python tools/package.py

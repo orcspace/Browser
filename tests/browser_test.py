@@ -20,7 +20,8 @@ args = parser.parse_args()
 flags = ['--remote-allow-system-access']
 if args.app:
     os.environ['XUL_APP_FILE'] = args.app
-m = Marionette(app='fxdesktop', bin=args.binary, headless=True, app_args=flags)
+profile_seed = tempfile.TemporaryDirectory(prefix='Browser test ')
+m = Marionette(app='fxdesktop', bin=args.binary, headless=True, app_args=flags, profile=profile_seed.name)
 try:
     m.start_session()
     m.set_context('chrome')
@@ -117,3 +118,4 @@ finally:
     m.cleanup()
     del m
     gc.collect()
+    profile_seed.cleanup()
