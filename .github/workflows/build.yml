@@ -1,0 +1,33 @@
+name: Firefox Browser
+on:
+  push:
+    branches: [main, work/firefox-native]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            binary: dist/Windows/Browser.exe
+          - os: macos-15
+            binary: dist/Darwin/Browser.app/Contents/MacOS/Browser
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - run: python -m unittest discover -s tests -p 'test_*.py'
+      - run: python tools/build.py
+      - run: python -m pip install marionette_driver
+      - run: python tests/browser_test.py --binary "${{ matrix.binary }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Browser-${{ runner.os }}-development
+          path: dist/
