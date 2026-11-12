@@ -13,6 +13,7 @@ import urllib.request
 from pathlib import Path
 from overlay import ROOT, install
 from branding import brand
+from macos_sign import sign_bundle
 
 
 def run(*args):
@@ -91,7 +92,7 @@ def build(archive=None):
             data = plistlib.loads(info.read_bytes())
             data.update(CFBundleName='Browser', CFBundleDisplayName='Browser', CFBundleIdentifier='space.orc.browser', CFBundleExecutable='Browser', CFBundleIconFile='Browser.icns')
             info.write_bytes(plistlib.dumps(data))
-            run('codesign', '--force', '--deep', '--sign', '-', '--preserve-metadata=entitlements,requirements,flags,runtime', bundle)
+            sign_bundle(bundle)
         else:
             raise ValueError('Unsupported platform')
     print(executable)

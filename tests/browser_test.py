@@ -3,6 +3,12 @@ import argparse
 import json
 import os
 import gc
+import tempfile
+import zipfile
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from marionette_driver.addons import Addons
+from marionette_driver.wait import Wait
 from pathlib import Path
 from marionette_driver.marionette import Marionette
 
@@ -69,6 +75,42 @@ try:
     print(json.dumps(checks, indent=2))
     assert checks.pop('rejected') == 6
     assert all(value is True for value in checks.values()), checks
+    class Page(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b'<!doctype html><title>Browser extension test</title><body>Local test</body>')
+        def log_message(self, *args):
+            pass
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Page)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            xpi = Path(directory) / 'test.xpi'
+            manifest = {'manifest_version':2, 'name':'Browser integration test', 'version':'1.0',
+                'browser_specific_settings':{'gecko':{'id':'browser-integration@example.invalid'}},
+                'content_scripts':[{'matches':['http://127.0.0.1/*'], 'js':['content.js']}]}
+            with zipfile.ZipFile(xpi, 'w') as archive:
+                archive.writestr('manifest.json', json.dumps(manifest))
+                archive.writestr('content.js', "document.body.dataset.browserExtension = 'active';")
+            addons = Addons(m)
+            addon_id = addons.install(str(xpi), temp=True)
+            try:
+                m.set_context('content')
+                m.navigate(f'http://127.0.0.1:{server.server_port}/')
+                Wait(m, timeout=15).until(lambda driver: driver.execute_script("return document.body.dataset.browserExtension === 'active'"))
+                assert m.execute_script("return typeof window.Browser === 'undefined' && typeof window.ChromeUtils === 'undefined'")
+                print('Native Firefox extension: passed; privileged chrome globals absent from content.')
+            finally:
+                addons.uninstall(addon_id)
+                del addons
+                m.set_context('chrome')
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
     if args.screenshot:
         Path(args.screenshot).write_bytes(m.screenshot(format='binary'))
 finally:

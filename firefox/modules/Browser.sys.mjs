@@ -38,8 +38,14 @@ export const Browser = {
   },
   applyPreferences() {
     const c = this.config;
-    for (const key of this.previousPreferences || []) if (!Object.hasOwn(c.preferences, key)) Services.prefs.clearUserPref(key);
+    if (!this.previousPreferences) {
+      try { this.previousPreferences = JSON.parse(Services.prefs.getStringPref('browser.custom.managedPreferences', '[]')); }
+      catch { this.previousPreferences = []; }
+      if (!Array.isArray(this.previousPreferences)) this.previousPreferences = [];
+    }
+    for (const key of this.previousPreferences.filter(key => typeof key === 'string')) if (!Object.hasOwn(c.preferences, key)) Services.prefs.clearUserPref(key);
     this.previousPreferences = Object.keys(c.preferences);
+    Services.prefs.setStringPref('browser.custom.managedPreferences', JSON.stringify(this.previousPreferences));
     const prefs = {
       'sidebar.revamp': true,
       'sidebar.verticalTabs': true,
@@ -72,7 +78,7 @@ export const Browser = {
         await SearchService.removeEngine(engine); engine = null;
       }
       if (!engine) engine = await SearchService.addUserEngine({ name, url: item.url.replace('{query}', '{searchTerms}'), alias: item.keyword });
-      engine.alias = item.keyword;
+      engine.alias = item.keyword.toLowerCase();
       if (item.id === this.config.search.default) await SearchService.setDefault(engine, SearchService.CHANGE_REASON.USER);
     }
   },

@@ -38,7 +38,7 @@ export function validateConfig(defaults, patch) {
   if (!['strict','standard'].includes(c.privacy.trackingProtection)) fail('Invalid tracking protection.');
   for (const [k,v] of Object.entries(c.privacy)) if (k !== 'trackingProtection' && typeof v !== 'boolean') fail(`Invalid privacy setting: ${k}`);
   if (typeof c.extensions.allowUnsigned !== 'boolean') fail('allowUnsigned must be true or false.');
-  if (!object(c.preferences) || Object.entries(c.preferences).some(([k,v]) => !/^[a-z][a-z\d._-]+$/i.test(k) || /^(general\.config\.|security\.|network\.stricttransportsecurity\.|network\.http\.http3\.enable_0rtt|fission\.|remote\.|xpinstall\.|signon\.|datareporting\.|toolkit\.telemetry\.)/.test(k) || !['boolean','string','number'].includes(typeof v) || (typeof v === 'number' && (!Number.isInteger(v) || v < -2147483648 || v > 2147483647)))) fail('Invalid or protected Firefox preference.');
+  if (!object(c.preferences) || Object.entries(c.preferences).some(([k,v]) => !/^[a-z][a-z\d._-]+$/i.test(k) || /^(browser\.custom\.|general\.config\.|security\.|network\.stricttransportsecurity\.|network\.http\.http3\.enable_0rtt|fission\.|remote\.|xpinstall\.|signon\.|datareporting\.|toolkit\.telemetry\.)/.test(k) || !['boolean','string','number'].includes(typeof v) || (typeof v === 'number' && (!Number.isInteger(v) || v < -2147483648 || v > 2147483647)))) fail('Invalid or protected Firefox preference.');
   return c;
 }
 export function searchURL(text, search) {
