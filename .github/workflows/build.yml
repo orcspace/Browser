@@ -27,7 +27,16 @@ jobs:
       - run: python tools/build.py
       - run: python -m pip install marionette_driver
       - run: python tests/browser_test.py --binary "${{ matrix.binary }}"
+      - name: Startup diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f gecko.log ]; then cat gecko.log; fi
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            codesign --verify --deep --strict --verbose=2 dist/Darwin/Browser.app
+          fi
+      - run: python tools/package.py
       - uses: actions/upload-artifact@v4
         with:
           name: Browser-${{ runner.os }}-development
-          path: dist/
+          path: artifacts/

@@ -6,6 +6,7 @@ export const Browser = {
     this.path = PathUtils.join(PathUtils.profileDir, 'browser-config.json');
     this.defaults = await (await fetch('resource://browser-custom/default.json')).json();
     try {
+      if (await IOUtils.exists(this.path) && (await IOUtils.stat(this.path)).size > 1000000) throw new Error('Config exceeds 1 MB.');
       this.config = validateConfig(this.defaults, await IOUtils.exists(this.path) ? await IOUtils.readJSON(this.path) : {});
       if (!(await IOUtils.exists(this.path))) await this.write(this.config);
     } catch (error) { this.error = String(error); this.config = validateConfig(this.defaults, {}); Cu.reportError(error); }
@@ -21,6 +22,7 @@ export const Browser = {
     return this.pending;
   },
   async saveNow(text) {
+    await this.ready;
     if (text.length > 1000000) throw new Error('Config exceeds 1 MB.');
     const next = validateConfig(this.defaults, JSON.parse(text));
     await this.write(next); this.config = next; this.applyPreferences();

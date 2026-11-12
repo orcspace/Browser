@@ -63,7 +63,7 @@ def build(archive=None):
             install(runtime)
             brand(runtime)
             executable = output / 'Browser.exe'
-            run('cl', '/O2', '/W4', '/DUNICODE', '/D_UNICODE', ROOT / 'native/launcher.c', '/Fe:' + str(executable), '/Fo:' + str(temp / 'launcher.obj'))
+            run('cl', '/O2', '/W4', '/DUNICODE', '/D_UNICODE', ROOT / 'native/launcher.c', '/Fe:' + str(executable), '/Fo:' + str(temp / 'launcher.obj'), '/link', '/SUBSYSTEM:WINDOWS', '/ENTRY:wmainCRTStartup')
         elif system == 'Darwin':
             mount = temp / 'mounted'
             run('hdiutil', 'attach', archive, '-readonly', '-nobrowse', '-mountpoint', mount)
