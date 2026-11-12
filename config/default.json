@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "appearance": {
     "background": "#101827",
     "surface": "#172133",
@@ -14,31 +14,79 @@
     "toolbarHeight": 54,
     "tabHeight": 38,
     "cornerRadius": 10,
-    "showBookmarks": true,
     "showSearchHints": true,
-    "reduceMotion": false
+    "reduceMotion": false,
+    "material": "solid",
+    "backgroundOpacity": 0.84,
+    "surfaceOpacity": 0.72,
+    "blur": 24,
+    "window": { "transparent": false, "opacity": 1 },
+    "cssVariables": {},
+    "customCSS": ""
   },
   "search": {
     "default": "ddg",
     "engines": [
-      { "id": "ddg", "name": "DuckDuckGo", "keyword": "d", "url": "https://duckduckgo.com/?q={query}" },
-      { "id": "youtube", "name": "YouTube", "keyword": "y", "url": "https://www.youtube.com/results?search_query={query}" },
-      { "id": "google", "name": "Google", "keyword": "g", "url": "https://www.google.com/search?q={query}" },
-      { "id": "github", "name": "GitHub", "keyword": "gh", "url": "https://github.com/search?q={query}" },
-      { "id": "wikipedia", "name": "Wikipedia", "keyword": "w", "url": "https://en.wikipedia.org/w/index.php?search={query}" }
+      {
+        "id": "ddg",
+        "name": "DuckDuckGo",
+        "keyword": "d",
+        "url": "https://duckduckgo.com/?q={query}"
+      },
+      {
+        "id": "youtube",
+        "name": "YouTube",
+        "keyword": "y",
+        "url": "https://www.youtube.com/results?search_query={query}"
+      },
+      {
+        "id": "google",
+        "name": "Google",
+        "keyword": "g",
+        "url": "https://www.google.com/search?q={query}"
+      },
+      {
+        "id": "github",
+        "name": "GitHub",
+        "keyword": "gh",
+        "url": "https://github.com/search?q={query}"
+      },
+      {
+        "id": "wikipedia",
+        "name": "Wikipedia",
+        "keyword": "w",
+        "url": "https://en.wikipedia.org/w/index.php?search={query}"
+      }
     ]
   },
-  "tabs": { "restore": "pinned", "sleepAfterMinutes": 15, "maxOpen": 80, "confirmCloseWindow": true },
+  "tabs": {
+    "restore": "pinned",
+    "sleepAfterMinutes": 15,
+    "maxOpen": 80,
+    "confirmCloseWindow": true
+  },
   "privacy": {
     "doNotTrack": true,
     "globalPrivacyControl": true,
     "blockThirdPartyCookies": true,
     "blockTrackers": true,
-    "blockedHosts": ["doubleclick.net", "google-analytics.com", "googlesyndication.com", "connect.facebook.net", "analytics.tiktok.com", "hotjar.com"],
-    "permissions": { "camera": "ask", "microphone": "ask", "geolocation": "block", "notifications": "block", "clipboard-read": "ask" }
+    "blockedHosts": [
+      "doubleclick.net",
+      "google-analytics.com",
+      "googlesyndication.com",
+      "connect.facebook.net",
+      "analytics.tiktok.com",
+      "hotjar.com"
+    ],
+    "permissions": {
+      "camera": "ask",
+      "microphone": "ask",
+      "geolocation": "block",
+      "notifications": "block",
+      "clipboard-read": "ask"
+    }
   },
   "extensions": { "paths": [] },
-  "bookmarks": [],
   "shortcuts": {
     "newTab": "CommandOrControl+T",
     "closeTab": "CommandOrControl+W",

@@ -19,7 +19,6 @@ npm start
   close and reopen. Right-click a tab for its actions.
 - Search from the address bar or new tab. `y майнкрафт` opens YouTube results;
   `g query`, `d query`, `gh query` and `w query` select other search providers.
-- Bookmark the current page with the star. Add/remove bookmark entries in config.
 - Load your own unpacked Chrome extensions from the Extensions panel. Extract
   archives first, select the directory containing `manifest.json`, review its
   requested permissions, and keep the folder in place. Loaded extensions persist.
@@ -60,31 +59,99 @@ config, including defaults. Reset creates a `.bak` copy first.
   "search": {
     "default": "youtube",
     "engines": [
-      { "id": "youtube", "name": "YouTube", "keyword": "y", "url": "https://www.youtube.com/results?search_query={query}" },
-      { "id": "google", "name": "Google", "keyword": "g", "url": "https://www.google.com/search?q={query}" }
+      {
+        "id": "youtube",
+        "name": "YouTube",
+        "keyword": "y",
+        "url": "https://www.youtube.com/results?search_query={query}"
+      },
+      {
+        "id": "google",
+        "name": "Google",
+        "keyword": "g",
+        "url": "https://www.google.com/search?q={query}"
+      }
     ]
   }
 }
 ```
 
 Customize theme colors, font, sidebar and toolbar dimensions, tab spacing, corner
-radius, bookmark visibility, hints, animation, search providers, tab limits,
+radius, hints, animation, search providers, tab limits,
 restoration, sleep timeout, extension paths, tracker domains, permission rules
 and keyboard shortcuts. Security boundaries such as the sandbox and TLS
 verification are deliberately fixed. Cookie policy changes also require restart
 for Chromium's native startup preference; network cookie filtering updates live.
 
+### Matte glass and full interface styling
+
+Choose **Settings → Matte glass**, then **Restart Browser** once to enable native
+window transparency. macOS uses vibrancy; Windows 11 22H2+ uses acrylic. The OS,
+accessibility settings and compositor determine the final native effect.
+Regular web pages retain their backgrounds. Linux only gets the CSS styling.
+
+```json
+{
+  "appearance": {
+    "material": "glass",
+    "backgroundOpacity": 0.65,
+    "surfaceOpacity": 0.5,
+    "blur": 30,
+    "window": { "transparent": true, "opacity": 1 },
+    "cssVariables": { "--sidebar": "270px", "--line": "#ffffff16" },
+    "customCSS": ".brand strong { letter-spacing: 2px; } #toolbar { padding-inline: 20px; }"
+  }
+}
+```
+
+`window.opacity` changes the opacity of the entire native window, including sites.
+Background/surface opacity changes the browser interface independently. Setting
+`material` to `solid` and `window.transparent` to `false` restores the opaque mode.
+Glass has a compositor cost; solid mode avoids the blur work.
+
+Every HTML interface element can be styled with `customCSS`; `cssVariables`
+overrides any design token. Native page bounds follow the measured `#viewport`
+element, so custom layout changes stay aligned with the actual website.
+OS-owned elements such as macOS traffic lights retain the OS's styling.
+Use the external config file to recover if your CSS hides the controls.
+Version 1 configs migrate to version 2, preserving settings while removing the
+retired bookmark fields. Unsaved config drafts survive switching panels.
+
+Shortcuts accept named keys such as `F5`, `Alt+Left` and `Control+PageDown`;
+set a binding to `""` to disable it. Equivalent bindings are checked for conflicts
+on both supported operating systems.
+
+## Structure
+
+```text
+src/
+  core/       config validation, URL resolution, privacy rules, shortcut parsing
+  main/       app lifecycle, window, tabs, config store, extensions, downloads, IPC
+  ui/         local HTML/CSS, UI controller, themes, panels, rendering helpers
+config/       documented defaults
+assets/       app icon and native macOS entitlements
+tests/        core and real Electron regression tests
+scripts/      syntax checks and icon generation
+```
+
+`main/index.cjs` bootstraps one application. `Tabs` owns page lifecycles;
+`ConfigStore` owns validated atomic persistence and native file notifications.
+`Application` connects those services to the sender-validated IPC dispatcher.
+The UI uses stable tab nodes and bounded event updates. Services release timers,
+views and watchers explicitly. No UI framework or runtime build step is needed.
+See [AUDIT.md](AUDIT.md) for review scope, fixes and verification evidence.
+
 Default shortcuts (use ⌘ in place of Ctrl on Mac, except Ctrl+Tab):
 
-| Action | Shortcut |
-| --- | --- |
-| Address bar | Ctrl+L |
+| Action                   | Shortcut                       |
+| ------------------------ | ------------------------------ |
+| Address bar              | Ctrl+L                         |
 | New / close / reopen tab | Ctrl+T / Ctrl+W / Ctrl+Shift+T |
-| Pin tab | Ctrl+Shift+P |
-| Collapse sidebar | Ctrl+B |
-| Next / previous tab | Ctrl+Tab / Ctrl+Shift+Tab |
-| Settings / downloads | Ctrl+, / Ctrl+J |
-| Reload | Ctrl+R |
+| Pin tab                  | Ctrl+Shift+P                   |
+| Collapse sidebar         | Ctrl+B                         |
+| Next / previous tab      | Ctrl+Tab / Ctrl+Shift+Tab      |
+| Settings / downloads     | Ctrl+, / Ctrl+J                |
+| Reload                   | Ctrl+R                         |
 
 ## Privacy and compatibility
 
@@ -131,7 +198,8 @@ fixtures for navigation, IPC isolation, config changes, restoration, extension
 content scripts and downloads.
 
 [GitHub Actions](../../actions) tests and packages both platforms on pushes to
-main. Download installers from each run's artifacts. Current builds are unsigned;
+main. Download installers from each run's artifacts. Windows builds are unsigned;
+Mac prototypes use ad-hoc signing and are not notarized.
 Windows SmartScreen and macOS Gatekeeper may restrict them. Public distribution
 needs your signing certificates, Apple notarization and testing on actual target
 hardware. CI on Windows Server is not a substitute for a Windows 11 hardware test.
