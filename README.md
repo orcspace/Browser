@@ -56,7 +56,9 @@ python tests/browser_test.py --binary /absolute/path/to/Browser
 Build targets are Windows x64 and macOS Apple Silicon; Linux supports local
 validation. CI builds and exercises each native target. CI artifacts are
 **development builds**, not signed/notarized installers. macOS artifacts must
-preserve executable permissions and app symlinks when transferred.
+preserve executable permissions and app symlinks when transferred. Mozilla-only
+Apple signing grants are removed from development signatures; platform passkeys
+need our own Apple entitlement before production support can be claimed.
 
 Password saving, account sync, recommendations and telemetry are disabled by
 preferences/policies. Their compiled Mozilla code is still present. Firefox's

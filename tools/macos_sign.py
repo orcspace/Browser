@@ -1,5 +1,7 @@
 """Ad-hoc sign development bundles inside out, preserving engine entitlements."""
 import subprocess
+import plistlib
+import tempfile
 from pathlib import Path
 
 MACHO = {b'\xfe\xed\xfa\xce', b'\xce\xfa\xed\xfe', b'\xfe\xed\xfa\xcf',
@@ -10,8 +12,23 @@ MACHO = {b'\xfe\xed\xfa\xce', b'\xce\xfa\xed\xfe', b'\xfe\xed\xfa\xcf',
 def sign_bundle(bundle):
     bundle = Path(bundle)
     def sign(path):
-        subprocess.run(['codesign', '--force', '--sign', '-',
-                        '--preserve-metadata=entitlements,flags,runtime', str(path)], check=True)
+        original = subprocess.run(['codesign', '-d', '--entitlements', ':-', str(path)],
+                                  capture_output=True, check=False)
+        raw = original.stdout
+        start = raw.find(b'<?xml')
+        entitlements = plistlib.loads(raw[start:]) if start >= 0 else {}
+        # Mozilla's restricted signing grants cannot be used by our ad-hoc
+        # development identity. Keep JIT and the engine's sandbox entitlements.
+        for key in list(entitlements):
+            if key in {'com.apple.application-identifier', 'application-identifier',
+                       'keychain-access-groups', 'com.apple.security.application-groups'} or key.startswith('com.apple.developer.'):
+                del entitlements[key]
+        with tempfile.NamedTemporaryFile(suffix='.plist') as grant:
+            grant.write(plistlib.dumps(entitlements))
+            grant.flush()
+            subprocess.run(['codesign', '--force', '--sign', '-',
+                            '--preserve-metadata=flags,runtime', '--entitlements', grant.name,
+                            str(path)], check=True)
     for path in sorted(bundle.rglob('*')):
         if path.is_file() and not path.is_symlink():
             with path.open('rb') as stream:
