@@ -70,7 +70,7 @@ def build(archive=None):
             resource = temp / 'browser.rc'
             resource.write_text('1 ICON "' + (ROOT / 'assets/icon.ico').as_posix() + '"\n')
             run('rc', '/fo', temp / 'browser.res', resource)
-            run('cl', '/O2', '/W4', '/DUNICODE', '/D_UNICODE', ROOT / 'native/launcher.c', temp / 'browser.res', '/Fe:' + str(executable), '/Fo:' + str(temp / 'launcher.obj'), '/link', '/SUBSYSTEM:WINDOWS', '/ENTRY:wmainCRTStartup')
+            run('cl', '/O2', '/MT', '/W4', '/DUNICODE', '/D_UNICODE', ROOT / 'native/launcher.c', temp / 'browser.res', '/Fe:' + str(executable), '/Fo:' + str(temp / 'launcher.obj'), '/link', '/SUBSYSTEM:WINDOWS', '/ENTRY:wmainCRTStartup')
         elif system == 'Darwin':
             mount = temp / 'mounted'
             run('hdiutil', 'attach', archive, '-readonly', '-nobrowse', '-mountpoint', mount)
@@ -84,7 +84,7 @@ def build(archive=None):
             brand(runtime)
             patch_runtime(runtime)
             executable = bundle / 'Contents/MacOS/Browser'
-            run('clang', '-O2', '-Wall', '-arch', 'arm64', ROOT / 'native/launcher.c', '-o', executable)
+            run('clang', '-O2', '-Wall', '-mmacosx-version-min=11.0', '-arch', 'arm64', ROOT / 'native/launcher.c', '-o', executable)
             iconset = temp / 'Browser.iconset'
             iconset.mkdir()
             for size in (16, 32, 128, 256, 512):

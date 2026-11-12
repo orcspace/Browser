@@ -58,7 +58,14 @@ engines, which could delete a user-created engine with a matching suffix. Persis
 native engine IDs, remove only owned IDs, and choose a non-conflicting name when
 creating an engine. A native regression test preserves `Personal [Browser]`.
 
-## Review 6: regression review of the implemented migration
+## Review 6: launcher runtime dependencies
+
+Found and corrected: the Windows launcher needed the external MSVC runtime;
+link its CRT statically (`/MT`). Set the macOS launcher's deployment target to
+11.0, leaving the bundled Firefox's minimum-OS requirement authoritative instead
+of accidentally requiring the build runner's OS version.
+
+## Review 7: regression review of the implemented migration
 
 No new findings in the reviewed controller/config/search/tab lifecycle and
 packaging paths after these fixes. This scoped result does not certify all
