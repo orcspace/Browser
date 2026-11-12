@@ -12,6 +12,7 @@ and installs Browser's chrome modules, branding and two guarded upstream JS fixe
 
 - `firefox/modules/Core.sys.mjs`: pure JSON validation and search rules.
 - `firefox/modules/Browser.sys.mjs`: profile config, Firefox preferences/search, window lifecycle.
+- `firefox/modules/Tabs.sys.mjs`: safe inactive-tab unloading and window cleanup.
 - `firefox/modules/Interface.sys.mjs`: chrome styling and configuration editor.
 - `firefox/default-prefs.js`, `policies.json`: minimal defaults and disabled services.
 - `config/default.json`: editable appearance, search, privacy and tab settings.

@@ -1,4 +1,5 @@
 import { SearchService } from 'moz-src:///toolkit/components/search/SearchService.sys.mjs';
+import { trackTabs } from './Tabs.sys.mjs';
 import { validateConfig } from './Core.sys.mjs';
 import { applyTheme, openSettings } from './Interface.sys.mjs';
 export const Browser = {
@@ -89,21 +90,6 @@ export const Browser = {
       this.widgetCreated = true;
     }
     applyTheme(win, this.config.appearance);
-    const activity = new WeakMap();
-    let previous = win.gBrowser.selectedTab;
-    win.gBrowser.tabContainer.addEventListener('TabSelect', () => {
-      if (previous) activity.set(previous, Date.now());
-      previous = win.gBrowser.selectedTab;
-    });
-    const timer = win.setInterval(() => {
-      const minutes = this.config.tabs.sleepAfterMinutes;
-      if (!minutes) return;
-      for (const tab of win.gBrowser.tabs) {
-        if (tab.selected || tab.pinned || tab.hasAttribute('soundplaying') || tab.hasAttribute('sharing') || tab.linkedBrowser?.isNavigating) continue;
-        if (!activity.has(tab)) activity.set(tab, Date.now());
-        if (Date.now() - activity.get(tab) > minutes * 60000) win.gBrowser.discardBrowser(tab);
-      }
-    }, 30000);
-    win.addEventListener('unload', () => win.clearInterval(timer), { once: true });
+    trackTabs(win, () => this.config.tabs.sleepAfterMinutes);
   },
 };

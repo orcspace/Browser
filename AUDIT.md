@@ -40,6 +40,23 @@ Found and corrected:
   `tools/compatibility.py` support both policy forms and absent icons. Packaging
   rejects a changed upstream source instead of silently applying stale edits.
 
+## Review 4: inactive tabs and independent relaunch
+
+Found and corrected:
+- Inactive tabs were discarded without first flushing native session state;
+  flush before unloading, recheck eligibility afterward, and serialize scans.
+- Picture-in-picture and already-unloaded tabs are now excluded from scans.
+- Mozilla-only Apple entitlements killed ad-hoc signed processes at launch;
+  remove restricted identity grants while retaining JIT and sandbox entitlements.
+- A test quit before its newly pinned URL loaded; wait for navigation to finish
+  before checking persistence across a normal quit/relaunch.
+
+## Review 5: regression review of the implemented migration
+
+No new findings in the reviewed controller/config/search/tab lifecycle and
+packaging paths after these fixes. This scoped result does not certify all
+Firefox internals, every website, or platform visual/performance behavior.
+
 ## Validation and open gates
 
 Python packaging tests cover archive tampering and separate application identity.
@@ -47,17 +64,18 @@ Native Marionette tests exercise actual Browser startup, Unicode search routing,
 invalid JSON preservation, custom style apply/reset, pinning, vertical tabs,
 signature verification and the enabled content sandbox. A temporary native
 Firefox XPI runs a content script on a local test page; chrome globals remain
-absent from that page. Pinned tabs survive a normal quit and fresh launch. A
+absent from that page. Pinned tabs survive a normal quit and fresh launch. An inactive native tab is unloaded and its unsaved form text is restored. A
 profile path containing spaces is exercised. Linux runtime logs are free of
 JavaScript errors in this tested flow (the headless renderer logs a framebuffer
 warning).
 
-Windows 11 and Apple Silicon runtime behavior, headed UI layout/accessibility,
+Native Windows x64 and Apple Silicon integration runs have passed. Dedicated
+Windows 11 desktop acceptance, headed UI layout/accessibility,
 OS glass effects, broader session restoration and signed-extension coverage, and
 performance profiling remain required release gates. CI is configured for native
 Windows and macOS checks. This is a development distribution, not a signed release.
 
 Known limitations: no Browser security updater yet; only chrome translucency is
 implemented; packaged upstream features are disabled rather than removed from
-Mozilla binaries. A broader audit must continue before declaring the requested
-complete review cycle finished.
+Mozilla binaries. A broader release audit must continue before declaring the requested
+complete production review finished.
