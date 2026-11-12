@@ -1,0 +1,12 @@
+Browser
+Copyright 2026 orcspace contributors
+
+This repository started from h4ckf0r0day/obscura, Apache License 2.0.
+Original snapshot: 3bae60909615ed5a2ca263a12c300a4a545ed3ce
+Source: https://github.com/h4ckf0r0day/obscura
+The upstream snapshot and history are retained on prototype/obscura.
+
+The desktop interface, configuration system and Chromium integration are new.
+The original headless Rust engine and automation modules have been removed
+from the active desktop distribution. Browser uses Electron/Chromium, whose
+third-party license notices are included by Electron in packaged artifacts.

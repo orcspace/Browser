@@ -1,0 +1,140 @@
+const { test, expect, _electron: electron } = require('@playwright/test');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const http = require('node:http');
+const defaults = require('../config/default.json');
+let fixture, base;
+test.beforeAll(async () => {
+  fixture = http.createServer((req, res) => {
+    if (req.url === '/download') { res.writeHead(200, { 'Content-Disposition': 'attachment; filename="hello.txt"', 'Content-Type': 'text/plain' }); return res.end('Browser download fixture'); }
+    res.setHeader('Content-Type', 'text/html');
+    res.end('<!doctype html><title>Fixture page</title><h1>It works</h1><a href="/second">Second</a><a href="/popup" target="_blank">Popup</a><script>window.receivedHeaders=' + JSON.stringify(req.headers) + '</script>');
+  });
+  await new Promise(resolve => fixture.listen(0, '0.0.0.0', resolve));
+  base = `http://localhost:${fixture.address().port}`;
+});
+test.afterAll(() => fixture.close());
+async function launch(profile, extraArgs = []) {
+  const application = await electron.launch({ args: [path.join(__dirname, '..'), ...extraArgs], env: { ...process.env, BROWSER_PROFILE: profile } });
+  const page = await application.firstWindow();
+  await page.waitForFunction(() => window.browser && document.querySelector('#search'));
+  return { application, page };
+}
+const getState = page => page.evaluate(() => window.browser.state());
+const command = (page, name, data) => page.evaluate(([n, d]) => window.browser.action(n, d), [name, data]);
+const remote = (application, expression) => application.evaluate(async ({ webContents }, expr) => {
+  const content = webContents.getAllWebContents().find(wc => wc.getURL().startsWith('http:'));
+  if (!content) return null;
+  return content.executeJavaScript(expr);
+}, expression);
+
+test('real navigation, isolation, shortcuts, pinning and restore', async () => {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-desktop-'));
+  let application;
+  try {
+    let page;
+    ({ application, page } = await launch(profile));
+    await expect(page.locator('#newtab')).toBeVisible();
+    await page.locator('#search').fill(base);
+    await page.locator('#search').press('Enter');
+    await expect.poll(() => remote(application, 'document.title')).toBe('Fixture page');
+    expect(await remote(application, '[typeof require, typeof process, typeof window.browser]')).toEqual(['undefined', 'undefined', 'undefined']);
+    expect(await remote(application, 'window.receivedHeaders.dnt')).toBe('1');
+    expect(await remote(application, 'window.receivedHeaders["sec-gpc"]')).toBe('1');
+    await command(page, 'pinTab');
+    await expect(page.locator('#pinned-tabs .tab')).toHaveCount(1);
+    // Electron's before-input-event is a native input hook. CDP keyboard
+    // injection bypasses it, so exercise the actual native input path here.
+    await application.evaluate(({ BrowserWindow }, platform) => {
+      const wc = BrowserWindow.getFocusedWindow().webContents;
+      const modifiers = [platform === 'darwin' ? 'meta' : 'control'];
+      wc.sendInputEvent({ type: 'keyDown', keyCode: 'T', modifiers });
+      wc.sendInputEvent({ type: 'keyUp', keyCode: 'T', modifiers });
+    }, process.platform);
+    await expect.poll(async () => (await getState(page)).tabs.length).toBe(2);
+    await page.locator('#address').fill('y майнкрафт');
+    await expect(page.locator('#engine-indicator')).toHaveText('YouTube');
+    await page.locator('#address').press('Enter');
+    await expect.poll(async () => { const current = await getState(page); return current.tabs.find(t => t.id === current.activeId)?.url; }).toContain('youtube.com/results?search_query=');
+    await command(page, 'closeTab');
+    await expect(page.locator('#pinned-tabs .tab')).toHaveCount(1);
+    await command(page, 'reopenTab');
+    await expect.poll(async () => (await getState(page)).tabs.length).toBe(2);
+    await command(page, 'closeTab');
+    await command(page, 'toggleSidebar');
+    await expect(page.locator('body')).toHaveClass(/collapsed/);
+    await application.close(); application = null;
+    ({ application, page } = await launch(profile));
+    await expect(page.locator('#pinned-tabs .tab')).toHaveCount(1);
+    expect((await getState(page)).tabs[0].url).toBe(`${base}/`);
+    expect((await getState(page)).config.appearance.sidebarCollapsed).toBe(true);
+  } finally { if (application) await application.close(); fs.rmSync(profile, { recursive: true, force: true }); }
+});
+
+test('config editor applies settings and rejects invalid updates; website popups stay isolated', async () => {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-settings-'));
+  const { application, page } = await launch(profile);
+  try {
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const editor = page.locator('#config-editor');
+    const config = structuredClone(defaults); config.appearance.accent = '#ffaabb'; config.appearance.sidebarWidth = 280;
+    await editor.fill(JSON.stringify(config)); await page.getByText('Save changes', { exact: true }).click();
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--sidebar'))).toBe('280px');
+    await editor.fill('{broken'); await page.getByText('Save changes', { exact: true }).click();
+    await expect(page.locator('#toast')).toBeVisible();
+    expect((await getState(page)).config.appearance.accent).toBe('#ffaabb');
+    await command(page, 'closePanel'); await command(page, 'navigate', base);
+    await expect.poll(() => remote(application, 'document.title')).toBe('Fixture page');
+    await remote(application, 'document.querySelector("a[target]").click()');
+    await expect.poll(async () => (await getState(page)).tabs.length).toBe(2);
+    expect((await getState(page)).tabs.some(tab => tab.url === `${base}/popup`)).toBe(true);
+    const denied = await command(page, 'navigate', 'file:///etc/passwd');
+    expect(denied.ok).toBe(false);
+    // A web renderer cannot call the chrome's IPC channels.
+    expect(await remote(application, 'typeof window.browser')).toBe('undefined');
+  } finally { await application.close(); fs.rmSync(profile, { recursive: true, force: true }); }
+});
+
+test('unpacked extension content scripts and downloads', async () => {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-extension-'));
+  const extension = path.join(profile, 'extension'); fs.mkdirSync(extension);
+  fs.writeFileSync(path.join(extension, 'manifest.json'), JSON.stringify({ manifest_version: 3, name: 'Fixture extension', version: '1.0', content_scripts: [{ matches: ['http://localhost/*'], js: ['content.js'] }] }));
+  fs.writeFileSync(path.join(extension, 'content.js'), 'document.documentElement.dataset.extension = "loaded";');
+  const { application, page } = await launch(profile);
+  try {
+    await application.evaluate(({ dialog }, directory) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [directory] });
+      dialog.showMessageBox = async () => ({ response: 1 });
+    }, extension);
+    await command(page, 'installExtension');
+    await expect.poll(async () => (await getState(page)).extensions[0]?.name).toBe('Fixture extension');
+    await command(page, 'navigate', base);
+    await expect.poll(() => remote(application, 'document.documentElement.dataset.extension')).toBe('loaded');
+    const destination = path.join(profile, 'hello.txt');
+    await application.evaluate(({ session }, file) => { session.fromPartition('persist:browser').once('will-download', (_event, item) => item.setSavePath(file)); }, destination);
+    await command(page, 'navigate', `${base}/download`);
+    await expect.poll(async () => (await getState(page)).downloads[0]?.state).toBe('completed');
+    expect(fs.readFileSync(destination, 'utf8')).toBe('Browser download fixture');
+    await command(page, 'removeExtension', (await getState(page)).extensions[0].id);
+    await expect.poll(async () => (await getState(page)).extensions.length).toBe(0);
+  } finally { await application.close(); fs.rmSync(profile, { recursive: true, force: true }); }
+});
+
+test('media permission asks once per request and blocked location stays denied', async () => {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'browser-permissions-'));
+  const { application, page } = await launch(profile, ['--use-fake-device-for-media-stream']);
+  try {
+    await application.evaluate(({ dialog }) => {
+      global.permissionPrompts = 0;
+      dialog.showMessageBox = async () => { global.permissionPrompts++; return { response: 1 }; };
+    });
+    await command(page, 'navigate', base);
+    await expect.poll(() => remote(application, 'document.title')).toBe('Fixture page');
+    expect(await remote(application, 'navigator.permissions.query({name:"geolocation"}).then(p=>p.state)')).toBe('denied');
+    expect(await remote(application, 'navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());return "approved"})')).toBe('approved');
+    expect(await application.evaluate(() => global.permissionPrompts)).toBe(1);
+    await application.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 0 }); });
+    expect(await remote(application, 'navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());return "approved"}).catch(e=>e.name)')).toBe('NotAllowedError');
+  } finally { await application.close(); fs.rmSync(profile, { recursive: true, force: true }); }
+});
