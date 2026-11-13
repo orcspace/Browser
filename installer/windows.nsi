@@ -1,6 +1,6 @@
 Unicode true
 Name "Browser"
-OutFile "Browser-Setup.exe"
+OutFile "${__FILEDIR__}\..\Browser-Setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\Browser"
 RequestExecutionLevel user
 SetCompressor zlib
@@ -10,7 +10,7 @@ UninstPage uninstConfirm
 UninstPage instfiles
 Section "Browser"
  SetOutPath "$INSTDIR"
- File /r "dist\Windows\*"
+ File /r "${__FILEDIR__}\..\dist\Windows\*"
  WriteUninstaller "$INSTDIR\Uninstall.exe"
  CreateDirectory "$SMPROGRAMS\Browser"
  CreateShortcut "$SMPROGRAMS\Browser\Browser.lnk" "$INSTDIR\Browser.exe"
