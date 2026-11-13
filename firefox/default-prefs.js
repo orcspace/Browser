@@ -1,0 +1,31 @@
+pref('general.config.filename', 'browser.cfg');
+pref('general.config.obscure_value', 0);
+// Only the installed browser chrome controller is privileged. Content sandbox,
+// Fission and TLS protections keep their Firefox defaults.
+pref('general.config.sandbox_enabled', false);
+pref('sidebar.revamp', true);
+pref('sidebar.verticalTabs', true);
+pref('sidebar.position_start', true);
+pref('sidebar.main.tools', '');
+pref('browser.shell.checkDefaultBrowser', false);
+pref('browser.aboutwelcome.enabled', false);
+pref('browser.startup.homepage_override.mstone', 'ignore');
+pref('browser.startup.homepage', 'about:blank');
+pref('browser.newtabpage.enabled', false);
+pref('browser.urlbar.suggest.searches', false);
+pref('browser.urlbar.suggest.quicksuggest.sponsored', false);
+pref('browser.urlbar.suggest.quicksuggest.nonsponsored', false);
+pref('browser.search.suggest.enabled', false);
+pref('browser.tabs.firefox-view', false);
+pref('browser.ml.chat.enabled', false);
+pref('browser.tabs.groups.smart.enabled', false);
+pref('signon.rememberSignons', false);
+pref('signon.autofillForms', false);
+pref('extensions.formautofill.addresses.enabled', false);
+pref('extensions.formautofill.creditCards.enabled', false);
+pref('datareporting.policy.dataSubmissionEnabled', false);
+pref('datareporting.healthreport.uploadEnabled', false);
+pref('toolkit.telemetry.enabled', false);
+pref('toolkit.telemetry.unified', false);
+pref('browser.newtabpage.activity-stream.telemetry', false);
+pref('app.normandy.enabled', false);

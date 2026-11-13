@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "appearance": {
+    "background": "#101827",
+    "surface": "#172133",
+    "text": "#e4eaf5",
+    "muted": "#8d9bb2",
+    "accent": "#adbded",
+    "fontFamily": "system-ui",
+    "fontSize": 13,
+    "sidebarWidth": 236,
+    "tabHeight": 38,
+    "cornerRadius": 10,
+    "material": "solid",
+    "backgroundOpacity": 0.84,
+    "surfaceOpacity": 0.72,
+    "blur": 24,
+    "windowOpacity": 1,
+    "reduceMotion": false,
+    "cssVariables": {},
+    "customCSS": ""
+  },
+  "search": {
+    "default": "ddg",
+    "engines": [
+      { "id": "ddg", "name": "DuckDuckGo", "keyword": "d", "url": "https://duckduckgo.com/?q={query}" },
+      { "id": "youtube", "name": "YouTube", "keyword": "y", "url": "https://www.youtube.com/results?search_query={query}" },
+      { "id": "google", "name": "Google", "keyword": "g", "url": "https://www.google.com/search?q={query}" },
+      { "id": "github", "name": "GitHub", "keyword": "gh", "url": "https://github.com/search?q={query}" },
+      { "id": "wikipedia", "name": "Wikipedia", "keyword": "w", "url": "https://en.wikipedia.org/w/index.php?search={query}" }
+    ]
+  },
+  "tabs": { "restore": "pinned", "sleepAfterMinutes": 15 },
+  "privacy": { "trackingProtection": "strict", "doNotTrack": true, "globalPrivacyControl": true, "blockNotifications": true, "blockLocation": true },
+  "extensions": { "allowUnsigned": false },
+  "preferences": {}
+}

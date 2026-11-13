@@ -1,0 +1,9 @@
+Browser is an independent Firefox-based distribution.
+Original Browser/Obscura prototype notices remain in Git history and LICENSE.
+The Electron prototype is archived on prototype/electron.
+
+Firefox/Gecko and associated components are developed by Mozilla and contributors.
+Mozilla code remains under its original licenses, including MPL 2.0; see the
+bundled about:license and source archives linked in README.md. Packaging changes
+branding resources but does not claim ownership of the Mozilla engine.
+Firefox is a trademark of the Mozilla Foundation. No endorsement is implied.

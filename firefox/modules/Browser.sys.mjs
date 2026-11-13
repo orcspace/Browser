@@ -1,0 +1,109 @@
+import { SearchService } from 'moz-src:///toolkit/components/search/SearchService.sys.mjs';
+import { trackTabs } from './Tabs.sys.mjs';
+import { validateConfig } from './Core.sys.mjs';
+import { applyTheme, openSettings } from './Interface.sys.mjs';
+export const Browser = {
+  async start() {
+    this.path = PathUtils.join(PathUtils.profileDir, 'browser-config.json');
+    this.defaults = await (await fetch('resource://browser-custom/default.json')).json();
+    try {
+      if (await IOUtils.exists(this.path) && (await IOUtils.stat(this.path)).size > 1000000) throw new Error('Config exceeds 1 MB.');
+      this.config = validateConfig(this.defaults, await IOUtils.exists(this.path) ? await IOUtils.readJSON(this.path) : {});
+      if (!(await IOUtils.exists(this.path))) await this.write(this.config);
+    } catch (error) { this.error = String(error); this.config = validateConfig(this.defaults, {}); Cu.reportError(error); }
+    this.applyPreferences();
+    Services.obs.addObserver(this, 'browser-delayed-startup-finished');
+    for (const win of Services.wm.getEnumerator('navigator:browser')) if (win.gBrowserInit?.delayedStartupFinished) this.attach(win);
+    this.ready = this.applySearch().catch(error => { this.error = String(error); Cu.reportError(error); });
+  },
+  observe(win) { this.attach(win); },
+  write(config) { return IOUtils.writeJSON(this.path, config, { tmpPath: this.path + '.tmp' }); },
+  save(text) {
+    this.pending = (this.pending || Promise.resolve()).catch(() => {}).then(() => this.saveNow(text));
+    return this.pending;
+  },
+  async saveNow(text) {
+    await this.ready;
+    if (text.length > 1000000) throw new Error('Config exceeds 1 MB.');
+    const next = validateConfig(this.defaults, JSON.parse(text));
+    await this.write(next); this.config = next; this.applyPreferences();
+    await this.applySearch();
+    for (const win of Services.wm.getEnumerator('navigator:browser')) applyTheme(win, next.appearance);
+    this.error = null;
+  },
+  applyPreferences() {
+    const c = this.config;
+    if (!this.previousPreferences) {
+      try { this.previousPreferences = JSON.parse(Services.prefs.getStringPref('browser.custom.managedPreferences', '[]')); }
+      catch { this.previousPreferences = []; }
+      if (!Array.isArray(this.previousPreferences)) this.previousPreferences = [];
+    }
+    for (const key of this.previousPreferences.filter(key => typeof key === 'string')) if (!Object.hasOwn(c.preferences, key)) Services.prefs.clearUserPref(key);
+    this.previousPreferences = Object.keys(c.preferences);
+    Services.prefs.setStringPref('browser.custom.managedPreferences', JSON.stringify(this.previousPreferences));
+    const prefs = {
+      'sidebar.revamp': true,
+      'sidebar.verticalTabs': true,
+      'sidebar.position_start': true,
+      'sidebar.main.tools': '',
+      'browser.startup.page': c.tabs.restore === 'all' ? 3 : 1,
+      'privacy.donottrackheader.enabled': c.privacy.doNotTrack,
+      'privacy.globalprivacycontrol.enabled': c.privacy.globalPrivacyControl,
+      'browser.contentblocking.category': c.privacy.trackingProtection,
+      'privacy.trackingprotection.enabled': c.privacy.trackingProtection === 'strict',
+      'permissions.default.desktop-notification': c.privacy.blockNotifications ? 2 : 0,
+      'permissions.default.geo': c.privacy.blockLocation ? 2 : 0,
+      'xpinstall.signatures.required': !c.extensions.allowUnsigned,
+      'widget.windows.mica': c.appearance.material === 'glass',
+    };
+    for (const [key, value] of Object.entries({ ...prefs, ...c.preferences })) {
+      Services.prefs[typeof value === 'boolean' ? 'setBoolPref' : typeof value === 'number' ? 'setIntPref' : 'setStringPref'](key, value);
+    }
+  },
+  async applySearch() {
+    await SearchService.init();
+    const preference = 'browser.custom.searchEngines';
+    let stored;
+    try { stored = JSON.parse(Services.prefs.getStringPref(preference, '{}')); }
+    catch { stored = {}; }
+    const owned = Object.assign(Object.create(null), stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {});
+    const wanted = new Set(this.config.search.engines.map(item => item.id));
+    for (const [id, engineId] of Object.entries(owned)) {
+      if (wanted.has(id)) continue;
+      const engine = typeof engineId === 'string' && await SearchService.getEngineById(engineId);
+      if (engine) await SearchService.removeEngine(engine);
+      delete owned[id];
+    }
+    for (const item of this.config.search.engines) {
+      let engine = typeof owned[item.id] === 'string' && await SearchService.getEngineById(owned[item.id]);
+      if (engine && (!engine.name.startsWith(`${item.name} [Browser]`) || engine.getSubmission('browser-config-probe')?.uri.spec !== item.url.replace('{query}', 'browser-config-probe'))) {
+        await SearchService.removeEngine(engine); engine = null;
+      }
+      if (!engine) {
+        const baseName = `${item.name} [Browser]`;
+        let name = baseName, suffix = 2;
+        while (await SearchService.getEngineByName(name)) name = `${baseName} ${suffix++}`;
+        engine = await SearchService.addUserEngine({ name, url: item.url.replace('{query}', '{searchTerms}'), alias: item.keyword });
+      }
+      owned[item.id] = engine.id;
+      Services.prefs.setStringPref(preference, JSON.stringify(owned));
+      engine.alias = item.keyword.toLowerCase();
+      if (item.id === this.config.search.default) await SearchService.setDefault(engine, SearchService.CHANGE_REASON.USER);
+    }
+  },
+  attach(win) {
+    if (win.__browserAttached) return;
+    win.__browserAttached = true;
+    if (!this.widgetCreated) {
+      const { CustomizableUI } = ChromeUtils.importESModule('moz-src:///browser/components/customizableui/CustomizableUI.sys.mjs');
+      CustomizableUI.createWidget({
+        id: 'browser-config-button', defaultArea: CustomizableUI.AREA_NAVBAR,
+        label: 'Browser settings', tooltiptext: 'Browser settings',
+        onCommand: event => openSettings(event.target.ownerGlobal, this),
+      });
+      this.widgetCreated = true;
+    }
+    applyTheme(win, this.config.appearance);
+    trackTabs(win, () => this.config.tabs.sleepAfterMinutes);
+  },
+};
