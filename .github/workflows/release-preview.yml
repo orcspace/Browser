@@ -1,6 +1,9 @@
 name: Publish Windows preview
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/release-preview.yml, installer/windows.nsi]
 permissions:
   contents: write
 jobs:
